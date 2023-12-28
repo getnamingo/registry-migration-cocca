@@ -161,8 +161,25 @@ try {
 
         $domainId = $pdo->lastInsertId();
 
+        // Determine the appropriate status for the database based on $data['status']
+        switch ($data['status']) {
+            case 'domain_status_active':
+                $status = 'ok';
+                break;
+            case 'domain_status_inactive':
+                $status = 'inactive';
+                break;
+            case 'domain_status_excluded':
+                $status = 'clientHold';
+                break;
+            case 'domain_status_pending_purge':
+                $status = 'pendingDelete';
+                break;
+            default:
+                $status = 'ok'; // Default to 'ok' if $data['status'] is empty or unrecognized
+        }
+
         // Inserting domain status into 'domain_status' table
-        $status = 'ok';
         $sql = "INSERT INTO domain_status (domain_id, status) VALUES (?, ?)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$domainId, $status]);

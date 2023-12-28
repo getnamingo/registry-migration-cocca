@@ -21,7 +21,7 @@ Place your CoCCA CSV export files in the same directory as the script. Ensure th
 Execute the script with the following command:
 
 ```bash
-php Import.php
+php import.php
 ```
 
 ## Troubleshooting
