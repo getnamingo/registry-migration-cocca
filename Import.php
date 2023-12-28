@@ -273,6 +273,87 @@ try {
                     $contactSql = "INSERT INTO domain_contact_map (domain_id, contact_id, type) VALUES (?, ?, ?)";
                     $contactStmt = $pdo->prepare($contactSql);
                     $contactStmt->execute([$domainId, $contactId, $type]);
+                } else {
+                    // If no record exists, insert the new data
+                    $prefix = '';
+                    switch ($type) {
+                        case 'billing':
+                            $prefix = 'billing_';
+                            break;
+                        case 'tech':
+                            $prefix = 'technical_';
+                            break;
+                        case 'admin':
+                            $prefix = 'admin_';
+                            break;
+                        default:
+                            // Handle the default case or throw an error
+                            // die("Invalid contact type: $type");
+                            $prefix = 'registrant_'; // assuming 'registrant_' as default if needed
+                    }
+
+                    $contactData = [
+                        $data[$prefix . 'contact_id'], // identifier
+                        formatPhoneNumber($data[$prefix . 'Phone']), // voice
+                        null, // voice_x
+                        formatPhoneNumber($data[$prefix . 'fax']), // fax
+                        null, // fax_x
+                        $data[$prefix . 'email'], // email
+                        null, // nin
+                        null, // nin_type
+                        $clid, // clid
+                        $clid, // crid
+                        formatTimestamp($data['create_date']) // crdate
+                    ];
+
+                    // Inserting into `contact` table
+                    $stmt = $pdo->prepare("INSERT INTO contact (identifier, voice, voice_x, fax, fax_x, email, nin, nin_type, clid, crid, crdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute($contactData);
+
+                    // Getting the last inserted contact_id
+                    $contactId = $pdo->lastInsertId();
+                    
+                    // Preparing data for `contact_postalInfo` table
+                    $postalInfoData = [
+                        $contactId, // contact_id
+                        'int', // type (assuming 'int' for international)
+                        $data[$prefix . 'name'], // name
+                        $data[$prefix . 'organisation'], // org
+                        $data[$prefix . 'address_1'], // street1
+                        $data[$prefix . 'address_2'], // street2
+                        $data[$prefix . 'address_3'], // street3
+                        $data[$prefix . 'city'], // city
+                        $data[$prefix . 'state_province'], // sp
+                        $data[$prefix . 'postalcode'], // pc
+                        formatCountryCode($data[$prefix . 'countrycode']) // cc
+                    ];
+
+                    // Inserting into `contact_postalInfo` table
+                    $stmt = $pdo->prepare("INSERT IGNORE INTO contact_postalInfo (contact_id, type, name, org, street1, street2, street3, city, sp, pc, cc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute($postalInfoData);
+                    
+                    // Inserting into `contact_authInfo` table
+                    $authInfoData = [
+                        $contactId, // contact_id
+                        'pw', // authtype
+                        generateRandomString() // authinfo
+                    ];
+
+                    $stmt = $pdo->prepare("INSERT IGNORE INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)");
+                    $stmt->execute($authInfoData);
+
+                    // Inserting into `contact_status` table
+                    $statusData = [
+                        $contactId, // contact_id
+                        'ok' // status
+                    ];
+
+                    $stmt = $pdo->prepare("INSERT IGNORE INTO contact_status (contact_id, status) VALUES (?, ?)");
+                    $stmt->execute($statusData);
+                    
+                    $contactSql = "INSERT INTO domain_contact_map (domain_id, contact_id, type) VALUES (?, ?, ?)";
+                    $contactStmt = $pdo->prepare($contactSql);
+                    $contactStmt->execute([$domainId, $contactId, $type]);
                 }
             }
         }
