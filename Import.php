@@ -59,6 +59,23 @@ try {
         $contactSql = "INSERT INTO registrar_contact (registrar_id, type, first_name, last_name, city, cc, voice, email) VALUES (?, 'tech', ?, ?, ?, ?, ?, ?)";
         $contactStmt = $pdo->prepare($contactSql);
         $contactStmt->execute([$registrarId, $data['Technical Contact'], $data['Technical Contact'], $data['Address'], $data['Country'], $data['Phone'], $data['Technical E-mail']]);
+        
+        $options = [
+            'memory_cost' => 1024 * 128,
+            'time_cost'   => 6,
+            'threads'     => 4,
+        ];
+        $newPW = generateRandomString();
+        $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
+
+        $userSql = "INSERT INTO users (email, password, username, status, verified, resettable, roles_mask, registered) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $userStmt = $pdo->prepare($userSql);
+        $userStmt->execute([$data['E-mail'], $hashedPassword, $data['Login'], '0', '1', '1', '4', '1']);
+        $userId = $pdo->lastInsertId();
+        
+        $userLinkSql = "INSERT INTO registrar_users (registrar_id, user_id) VALUES (?, ?)";
+        $userLinkStmt = $pdo->prepare($userLinkSql);
+        $userLinkStmt->execute([$registrarId, $userId]);
     }
 
     fclose($inputClients);
