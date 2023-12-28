@@ -184,6 +184,30 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$domainId, $status]);
         
+        switch ($data['locks']) {
+            case 'lock_client':
+                $clientStatuses = ['clientUpdateProhibited', 'clientDeleteProhibited', 'clientTransferProhibited'];
+                foreach ($clientStatuses as $status) {
+                    $stmt = $pdo->prepare("INSERT INTO domain_status (domain_id, status) VALUES (?, ?)");
+                    $stmt->execute([$domainId, $status]);
+                }
+                break;
+            case 'lock_server':
+                $serverStatuses = ['serverUpdateProhibited', 'serverDeleteProhibited', 'serverTransferProhibited'];
+                foreach ($serverStatuses as $status) {
+                    $stmt = $pdo->prepare("INSERT INTO domain_status (domain_id, status) VALUES (?, ?)");
+                    $stmt->execute([$domainId, $status]);
+                }
+                break;
+            case 'lock_client_and_server':
+                $combinedStatuses = ['clientUpdateProhibited', 'clientDeleteProhibited', 'clientTransferProhibited', 'serverUpdateProhibited', 'serverDeleteProhibited', 'serverTransferProhibited'];
+                foreach ($combinedStatuses as $status) {
+                    $stmt = $pdo->prepare("INSERT INTO domain_status (domain_id, status) VALUES (?, ?)");
+                    $stmt->execute([$domainId, $status]);
+                }
+                break;
+        }
+
         // Inserting into `domain_authInfo` table
         $authInfoData = [
             $domainId, // domainId
